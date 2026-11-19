@@ -37,7 +37,7 @@
       </section>
 
       <section class="workflow" aria-label="Werkwijze">
-        <div class="workflow-step active"><span class="step-index">01</span><span>BESTAND KIEZEN</span></div>
+        <div class="workflow-step active"><span class="step-index">01</span><span>BESTAND OF LINK</span></div>
         <div class="workflow-rule"></div>
         <div class="workflow-step"><span class="step-index">02</span><span>GELUID AFSTELLEN</span></div>
         <div class="workflow-rule"></div>
@@ -52,12 +52,28 @@
               <span class="panel-count">01 <span>/</span> 01</span>
             </div>
 
-            <button class="drop-zone" id="drop-zone" type="button">
-              <span class="upload-icon"><svg viewBox="0 0 28 28"><path d="M14 18V5m0 0L9 10m5-5 5 5M6 17v5h16v-5"/></svg></span>
-              <span class="drop-title">Sleep je bestand hierheen</span>
-              <span class="drop-subtitle">of <span class="browse-link">blader op je computer</span></span>
-              <span class="supported-formats">MP4 · MOV · MP3 · WAV · FLAC · M4A · MEER</span>
-            </button>
+            <div class="source-tabs" role="tablist" aria-label="Kies je invoermethode">
+              <button class="source-tab active" id="file-mode" type="button" role="tab" aria-selected="true">BESTAND</button>
+              <button class="source-tab" id="link-mode" type="button" role="tab" aria-selected="false">LINK</button>
+              <span class="source-mode-hint">KIES EEN INVOER</span>
+            </div>
+
+            <div class="source-view" id="file-source" role="tabpanel" aria-labelledby="file-mode">
+              <button class="drop-zone" id="drop-zone" type="button">
+                <span class="upload-icon"><svg viewBox="0 0 28 28"><path d="M14 18V5m0 0L9 10m5-5 5 5M6 17v5h16v-5"/></svg></span>
+                <span class="drop-title">Sleep je bestand hierheen</span>
+                <span class="drop-subtitle">of <span class="browse-link">blader op je computer</span></span>
+                <span class="supported-formats">MP4 · MOV · MP3 · WAV · FLAC · M4A · MEER</span>
+              </button>
+            </div>
+
+            <div class="source-view link-source hidden" id="link-source" role="tabpanel" aria-labelledby="link-mode">
+              <div class="link-copy"><strong>Importeer via een downloadlink</strong><span>Gebruik een directe, openbare HTTPS-link naar één audio- of videobestand.</span></div>
+              <div class="url-form"><input id="source-url" type="url" inputmode="url" autocomplete="url" placeholder="https://voorbeeld.nl/audio.mp3" aria-label="Directe downloadlink"><button id="import-link" type="button">IMPORTEREN</button></div>
+              <div class="link-status" id="link-status" role="status">Maximaal 500 MB · MP4 en audioformaten ondersteund</div>
+              <button class="service-link hidden" id="open-service" type="button">OPEN IN DE OFFICIËLE DIENST</button>
+              <div class="link-download-progress hidden" id="link-download-progress"><div class="link-progress-label"><span>BESTAND DOWNLOADEN</span><span id="link-progress-value">0%</span></div><div class="link-progress-track"><span id="link-progress-bar"></span></div></div>
+            </div>
 
             <div class="selected-file hidden" id="selected-file">
               <div class="file-art"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></div>
@@ -75,7 +91,7 @@
 
           <div class="link-note">
             <span class="note-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg></span>
-            <p><strong>Een link van Spotify, YouTube, Apple Music of SoundCloud?</strong> Die diensten leveren geen downloadbaar bestand. Importeer een audiobestand dat je zelf bezit of mag gebruiken.</p>
+            <p><strong>Streaminglinks worden herkend.</strong> YouTube, Spotify, Apple Music en SoundCloud openen via hun officiële dienst. AudioWerk importeert alleen directe mediabestanden die je mag gebruiken.</p>
           </div>
         </div>
 
@@ -104,7 +120,7 @@
           <div class="result hidden" id="result"><span class="result-check">✓</span><div><strong>Je M4A is klaar</strong><span id="result-name">—</span></div><button id="show-output" class="result-link">TOON BESTAND</button></div>
         </div>
       </section>
-      <footer class="footer"><span>AudioWerk <span class="footer-dot">·</span> 1.0</span><span><span class="privacy-dot"></span> LOKALE VERWERKING</span><span>AUDIO CONVERTER <span class="footer-dot">/</span> M4A STUDIO</span></footer>
+      <footer class="footer"><span>AudioWerk <span class="footer-dot">·</span> 1.0.3</span><span><span class="privacy-dot"></span> LOKALE VERWERKING</span><span>AUDIO CONVERTER <span class="footer-dot">/</span> M4A STUDIO</span></footer>
       <div class="toast hidden" id="toast" role="status"></div>
     </main>
   </div>

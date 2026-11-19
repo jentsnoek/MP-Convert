@@ -3,12 +3,187 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
+const dns = require('node:dns').promises;
+const https = require('node:https');
+const net = require('node:net');
+const { Transform } = require('node:stream');
+const { pipeline } = require('node:stream/promises');
 
 const tracks = new Map();
 const acceptedExtensions = new Set([
   '.aac', '.aif', '.aiff', '.flac', '.m4a', '.m4v', '.mkv', '.mov', '.mp3',
   '.mp4', '.oga', '.ogg', '.wav', '.webm', '.wma'
 ]);
+const MAX_DIRECT_MEDIA_BYTES = 500 * 1024 * 1024;
+const streamingDomains = {
+  'YouTube': ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'googlevideo.com'],
+  'Spotify': ['spotify.com', 'spotify.link', 'spoti.fi', 'scdn.co', 'spotifycdn.com'],
+  'Apple Music': ['music.apple.com', 'itunes.apple.com', 'mzstatic.com'],
+  'SoundCloud': ['soundcloud.com', 'sndcdn.com']
+};
+
+function matchingDomain(hostname, domain) {
+  return hostname === domain || hostname.endsWith(`.${domain}`);
+}
+
+function streamingServiceFor(hostname) {
+  for (const [service, domains] of Object.entries(streamingDomains)) {
+    if (domains.some((domain) => matchingDomain(hostname, domain))) return service;
+  }
+  return null;
+}
+
+function assertDirectMediaUrl(input) {
+  let url;
+  try { url = new URL(input); }
+  catch { throw new Error('Plak een geldige HTTPS-link naar een mediabestand.'); }
+  if (url.protocol !== 'https:' || url.username || url.password || url.port) {
+    throw new Error('Gebruik een openbare HTTPS-link zonder inloggegevens of aangepaste poort.');
+  }
+  if (streamingServiceFor(url.hostname)) {
+    throw new Error('Deze link hoort bij een streamingdienst. Open de officiële dienst of importeer een lokaal bestand.');
+  }
+  if (/\.(m3u8|m3u|mpd)$/i.test(url.pathname)) {
+    throw new Error('Streaming-afspeellijsten worden niet geïmporteerd. Gebruik een directe link naar één mediabestand.');
+  }
+  if (net.isIP(url.hostname)) throw new Error('Gebruik een domeinnaam voor de downloadlink.');
+  return url;
+}
+
+function isPublicIpv4(address) {
+  const parts = address.split('.').map(Number);
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+  const [a, b, c] = parts;
+  return !(
+    a === 0 || a === 10 || a === 127 || a >= 224 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && (b === 0 || b === 2 || b === 168)) ||
+    (a === 192 && b === 88 && c === 99) ||
+    (a === 198 && (b === 18 || b === 19 || b === 51)) ||
+    (a === 203 && b === 0 && c === 113)
+  );
+}
+
+async function resolvePublicIpv4(hostname) {
+  const records = await dns.lookup(hostname, { all: true, verbatim: true });
+  const ipv4 = records.filter((record) => record.family === 4);
+  if (ipv4.length === 0 || ipv4.some((record) => !isPublicIpv4(record.address))) {
+    throw new Error('De link moet verwijzen naar een openbare server.');
+  }
+  return ipv4[0].address;
+}
+
+async function openDirectResponse(inputUrl, redirectCount = 0) {
+  if (redirectCount > 5) throw new Error('De downloadlink stuurt te vaak door.');
+  const url = assertDirectMediaUrl(inputUrl);
+  const address = await resolvePublicIpv4(url.hostname);
+
+  return new Promise((resolve, reject) => {
+    const request = https.request({
+      hostname: url.hostname,
+      servername: url.hostname,
+      port: 443,
+      path: `${url.pathname}${url.search}`,
+      method: 'GET',
+      headers: { 'User-Agent': 'AudioWerk/1.0', Accept: 'audio/*, video/*, application/octet-stream' },
+      lookup: (_hostname, _options, callback) => callback(null, address, 4)
+    }, (response) => {
+      if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
+        const location = response.headers.location;
+        response.resume();
+        if (!location) return reject(new Error('De downloadlink heeft geen geldig doorstuuradres.'));
+        let nextUrl;
+        try { nextUrl = new URL(location, url).href; }
+        catch { return reject(new Error('De downloadlink heeft geen geldig doorstuuradres.')); }
+        openDirectResponse(nextUrl, redirectCount + 1).then(resolve, reject);
+        return;
+      }
+      resolve({ response, url });
+    });
+    request.setTimeout(30000, () => request.destroy(new Error('De downloadsserver reageert niet.')));
+    request.on('error', reject);
+    request.end();
+  });
+}
+
+function directMediaExtension(url, response, contentType) {
+  const disposition = String(response.headers['content-disposition'] || '');
+  const filenameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+  const dispositionName = filenameMatch ? (filenameMatch[1] || filenameMatch[2]) : '';
+  const dispositionExtension = path.extname(decodeURIComponent(dispositionName)).toLowerCase();
+  if (acceptedExtensions.has(dispositionExtension)) return dispositionExtension;
+  const fromUrl = path.extname(url.pathname).toLowerCase();
+  if (acceptedExtensions.has(fromUrl)) return fromUrl;
+  const byMime = {
+    'audio/aac': '.aac', 'audio/flac': '.flac', 'audio/x-flac': '.flac',
+    'audio/mp4': '.m4a', 'audio/m4a': '.m4a', 'audio/x-m4a': '.m4a',
+    'audio/mpeg': '.mp3', 'audio/ogg': '.ogg', 'audio/wav': '.wav',
+    'audio/x-wav': '.wav', 'audio/vnd.wave': '.wav', 'audio/x-aiff': '.aiff',
+    'audio/aiff': '.aiff', 'audio/x-ms-wma': '.wma', 'video/mp4': '.mp4',
+    'application/mp4': '.mp4', 'video/quicktime': '.mov', 'video/webm': '.webm',
+    'video/x-matroska': '.mkv'
+  };
+  return byMime[contentType] || '';
+}
+
+async function downloadDirectMedia(inputUrl, event) {
+  const { response, url } = await openDirectResponse(inputUrl);
+  if (response.statusCode !== 200) {
+    response.resume();
+    throw new Error(`De downloadsserver gaf status ${response.statusCode || 'onbekend'}.`);
+  }
+
+  const contentType = String(response.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+  if (!(contentType.startsWith('audio/') || contentType.startsWith('video/') || [
+    'application/octet-stream', 'binary/octet-stream', 'application/force-download', 'application/download'
+  ].includes(contentType))) {
+    response.resume();
+    throw new Error('De link bevat geen direct audio- of videobestand.');
+  }
+
+  let extension;
+  try { extension = directMediaExtension(url, response, contentType); }
+  catch { response.resume(); throw new Error('De bestandsnaam in de link is ongeldig.'); }
+  if (!acceptedExtensions.has(extension)) {
+    response.resume();
+    throw new Error('Het bestandstype van deze link wordt niet ondersteund.');
+  }
+
+  const contentLength = Number(response.headers['content-length']);
+  if (Number.isFinite(contentLength) && contentLength > MAX_DIRECT_MEDIA_BYTES) {
+    response.resume();
+    throw new Error('Het bestand is groter dan 500 MB.');
+  }
+
+  const downloadDirectory = path.join(app.getPath('temp'), 'AudioWerk', 'downloads');
+  await fs.promises.mkdir(downloadDirectory, { recursive: true });
+  const filePath = path.join(downloadDirectory, `${randomUUID()}${extension}`);
+  let bytesReceived = 0;
+  const meter = new Transform({
+    transform(chunk, _encoding, callback) {
+      bytesReceived += chunk.length;
+      if (bytesReceived > MAX_DIRECT_MEDIA_BYTES) return callback(new Error('Het bestand is groter dan 500 MB.'));
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('track:download-progress', {
+          loaded: bytesReceived,
+          total: Number.isFinite(contentLength) && contentLength > 0 ? contentLength : null
+        });
+      }
+      callback(null, chunk);
+    }
+  });
+
+  try {
+    await pipeline(response, meter, fs.createWriteStream(filePath, { flags: 'wx' }));
+  } catch (error) {
+    await fs.promises.rm(filePath, { force: true });
+    throw error;
+  }
+
+  return describeTrack(filePath);
+}
 
 function createWindow() {
   const window = new BrowserWindow({
@@ -119,6 +294,25 @@ app.whenReady().then(() => {
     return { id: track.id, name: track.name, extension: track.extension, bytes: track.bytes, url: track.url };
   });
 
+  ipcMain.handle('track:download-url', async (event, inputUrl) => {
+    if (typeof inputUrl !== 'string') throw new Error('Plak eerst een downloadlink.');
+    const track = await downloadDirectMedia(inputUrl, event);
+    tracks.set(track.id, track.path);
+    return { id: track.id, name: track.name, extension: track.extension, bytes: track.bytes, url: track.url };
+  });
+
+  ipcMain.handle('link:open-service', async (_event, inputUrl) => {
+    let url;
+    try { url = new URL(inputUrl); }
+    catch { throw new Error('Dit is geen geldige link.'); }
+    const service = streamingServiceFor(url.hostname);
+    if (!service || url.protocol !== 'https:' || url.username || url.password) {
+      throw new Error('Alleen links naar de officiële streamingdiensten kunnen worden geopend.');
+    }
+    await shell.openExternal(url.href);
+    return service;
+  });
+
   ipcMain.handle('track:convert', async (event, id, settings, durationSeconds) => {
     const input = tracks.get(id);
     if (!input) throw new Error('Kies eerst een bestand om te converteren.');
@@ -191,4 +385,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('will-quit', () => {
+  fs.rm(path.join(app.getPath('temp'), 'AudioWerk', 'downloads'), { recursive: true, force: true }, () => {});
 });

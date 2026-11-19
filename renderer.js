@@ -21,6 +21,7 @@ let midFilter = null;
 let highFilter = null;
 let volumeNode = null;
 let toastTimer = null;
+let pendingServiceUrl = null;
 
 function showToast(message) {
   const toast = $('#toast');
@@ -118,6 +119,110 @@ function updateWorkflow(activeStep) {
     step.classList.toggle('active', index + 1 <= activeStep);
   });
 }
+
+function setSourceMode(mode) {
+  const isLink = mode === 'link';
+  $('#file-mode').classList.toggle('active', !isLink);
+  $('#file-mode').setAttribute('aria-selected', String(!isLink));
+  $('#link-mode').classList.toggle('active', isLink);
+  $('#link-mode').setAttribute('aria-selected', String(isLink));
+  $('#file-source').classList.toggle('hidden', isLink);
+  $('#link-source').classList.toggle('hidden', !isLink);
+  if (isLink) $('#source-url').focus();
+}
+
+function streamingServiceFor(input) {
+  let hostname;
+  try { hostname = new URL(input).hostname.toLowerCase(); }
+  catch { return null; }
+  const services = {
+    YouTube: ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'googlevideo.com'],
+    Spotify: ['spotify.com', 'spotify.link', 'spoti.fi', 'scdn.co', 'spotifycdn.com'],
+    'Apple Music': ['music.apple.com', 'itunes.apple.com', 'mzstatic.com'],
+    SoundCloud: ['soundcloud.com', 'sndcdn.com']
+  };
+  for (const [name, domains] of Object.entries(services)) {
+    if (domains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`))) return name;
+  }
+  return null;
+}
+
+function setLinkStatus(message, kind = '') {
+  const status = $('#link-status');
+  status.textContent = message;
+  status.classList.remove('error', 'service');
+  if (kind) status.classList.add(kind);
+}
+
+$('#file-mode').addEventListener('click', () => setSourceMode('file'));
+$('#link-mode').addEventListener('click', () => setSourceMode('link'));
+
+async function importLink() {
+  const input = $('#source-url');
+  const url = input.value.trim();
+  if (!url) {
+    setLinkStatus('Plak een HTTPS-link naar een direct audio- of videobestand.', 'error');
+    input.focus();
+    return;
+  }
+
+  const service = streamingServiceFor(url);
+  if (service) {
+    pendingServiceUrl = url;
+    setLinkStatus(`${service}-link herkend. AudioWerk neemt geen streamingaudio op. Open de dienst en gebruik alleen een officiële downloadoptie voor je eigen bestand.`, 'service');
+    $('#open-service').classList.remove('hidden');
+    $('#link-download-progress').classList.add('hidden');
+    return;
+  }
+
+  pendingServiceUrl = null;
+  $('#open-service').classList.add('hidden');
+  $('#import-link').disabled = true;
+  $('#link-download-progress').classList.remove('hidden');
+  $('#link-progress-value').textContent = '…';
+  $('#link-progress-bar').style.width = '4%';
+  setLinkStatus('Directe mediabestandlink wordt gecontroleerd…');
+  try {
+    const track = await window.audioWerk.downloadUrl(url);
+    setLinkStatus('Bestand binnengehaald. Je kunt nu luisteren en de instellingen aanpassen.', 'service');
+    addTrack(track);
+    setSourceMode('file');
+    $('#link-download-progress').classList.add('hidden');
+  } catch (error) {
+    setLinkStatus(error.message || 'Deze link kan niet als mediabestand worden geïmporteerd.', 'error');
+    $('#link-download-progress').classList.add('hidden');
+  } finally {
+    $('#import-link').disabled = false;
+  }
+}
+
+$('#import-link').addEventListener('click', importLink);
+$('#source-url').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    importLink();
+  }
+});
+$('#open-service').addEventListener('click', async () => {
+  if (!pendingServiceUrl) return;
+  try {
+    const service = await window.audioWerk.openServiceLink(pendingServiceUrl);
+    setLinkStatus(`${service} is geopend. Importeer daarna een lokaal bestand dat je officieel kunt downloaden.`, 'service');
+  } catch (error) {
+    setLinkStatus(error.message || 'De link kon niet worden geopend.', 'error');
+  }
+});
+
+window.audioWerk.onDownloadProgress(({ loaded, total }) => {
+  if (total) {
+    const percent = Math.min(99, Math.round(loaded / total * 100));
+    $('#link-progress-value').textContent = `${percent}%`;
+    $('#link-progress-bar').style.width = `${percent}%`;
+  } else {
+    $('#link-progress-value').textContent = formatBytes(loaded);
+    $('#link-progress-bar').style.width = '42%';
+  }
+});
 
 $('#drop-zone').addEventListener('click', async () => {
   try { addTrack(await window.audioWerk.chooseTrack()); }

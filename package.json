@@ -1,10 +1,14 @@
 {
   "name": "audiowerk",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Lokale audio- en videoconverter met equalizer",
   "main": "main.js",
   "author": "AudioWerk",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jentsnoek/MP-Convert.git"
+  },
   "scripts": {
     "start": "electron .",
     "build:windows": "electron-builder --win portable --x64"
