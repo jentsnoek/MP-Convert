@@ -1,0 +1,57 @@
+{
+  "name": "audiowerk",
+  "version": "1.0.2",
+  "description": "Lokale audio- en videoconverter met equalizer",
+  "main": "main.js",
+  "author": "AudioWerk",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:windows": "electron-builder --win portable --x64"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/win32-x64": "4.1.0"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "nl.audiowerk.converter",
+    "productName": "AudioWerk",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "app.css",
+      "renderer.js",
+      "package.json",
+      "LICENSES/**/*",
+      "THIRD-PARTY-NOTICES.md"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe",
+        "to": "ffmpeg.exe"
+      }
+    ],
+    "electronLanguages": [
+      "nl"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "AudioWerk-${version}-portable.${ext}"
+    }
+  }
+}

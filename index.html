@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f7f4">
+  <title>AudioWerk</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="window-shell">
+    <header class="titlebar">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+        <span class="brand-name">audiowerk</span>
+        <span class="brand-divider"></span>
+        <span class="brand-edition">AUDIO STUDIO</span>
+      </div>
+      <div class="window-controls" aria-label="Vensterbediening">
+        <button class="window-control" id="minimize" aria-label="Minimaliseren"><svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg></button>
+        <button class="window-control" id="maximize" aria-label="Maximaliseren"><svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx=".6"/></svg></button>
+        <button class="window-control close-control" id="close" aria-label="Sluiten"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <section class="intro-row">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-line"></span> CONVERTER &amp; EQUALIZER</div>
+          <h1>Jouw audio,<br><em>jouw instellingen.</em></h1>
+          <p class="intro-copy">Zet audio en video om naar M4A. Stel het geluid af zoals jij het graag hoort.</p>
+        </div>
+        <div class="format-stamp" aria-label="Uitvoerformaat M4A">
+          <div class="stamp-icon"><svg viewBox="0 0 28 28"><path d="M11 21V7l11-2v14"/><circle cx="8" cy="21" r="3"/><circle cx="19" cy="19" r="3"/><path d="M11 10l11-2"/></svg></div>
+          <div><strong>M4A</strong><span>GELUIDSKWALITEIT<br>256 KBPS</span></div>
+        </div>
+      </section>
+
+      <section class="workflow" aria-label="Werkwijze">
+        <div class="workflow-step active"><span class="step-index">01</span><span>BESTAND KIEZEN</span></div>
+        <div class="workflow-rule"></div>
+        <div class="workflow-step"><span class="step-index">02</span><span>GELUID AFSTELLEN</span></div>
+        <div class="workflow-rule"></div>
+        <div class="workflow-step"><span class="step-index">03</span><span>OMZETTEN NAAR M4A</span></div>
+      </section>
+
+      <section class="workbench">
+        <div class="left-column">
+          <div class="panel file-panel">
+            <div class="panel-heading">
+              <div><span class="section-kicker">BRONBESTAND</span><h2>Wat wil je omzetten?</h2></div>
+              <span class="panel-count">01 <span>/</span> 01</span>
+            </div>
+
+            <button class="drop-zone" id="drop-zone" type="button">
+              <span class="upload-icon"><svg viewBox="0 0 28 28"><path d="M14 18V5m0 0L9 10m5-5 5 5M6 17v5h16v-5"/></svg></span>
+              <span class="drop-title">Sleep je bestand hierheen</span>
+              <span class="drop-subtitle">of <span class="browse-link">blader op je computer</span></span>
+              <span class="supported-formats">MP4 · MOV · MP3 · WAV · FLAC · M4A · MEER</span>
+            </button>
+
+            <div class="selected-file hidden" id="selected-file">
+              <div class="file-art"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></div>
+              <div class="file-details"><strong id="file-name">—</strong><span id="file-meta">—</span></div>
+              <button id="remove-file" class="icon-button" title="Bestand verwijderen" aria-label="Bestand verwijderen"><svg viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
+            </div>
+
+            <div class="player" id="player" aria-label="Audiovoorbeeld">
+              <button class="play-button" id="play" aria-label="Afspelen" disabled><svg class="play-glyph" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z"/></svg><svg class="pause-glyph hidden" viewBox="0 0 24 24"><path d="M7 5h4v14H7zm7 0h4v14h-4z"/></svg></button>
+              <div class="player-track"><div class="player-info"><span id="player-status">VOEG EEN BESTAND TOE OM TE LUISTEREN</span><span id="time-readout">0:00 / 0:00</span></div><input id="seek" class="seek" type="range" min="0" max="1000" value="0" aria-label="Positie in audio" disabled></div>
+              <div class="live-indicator"><span></span> LIVE</div>
+            </div>
+            <audio id="audio" preload="metadata"></audio>
+          </div>
+
+          <div class="link-note">
+            <span class="note-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg></span>
+            <p><strong>Een link van Spotify, YouTube, Apple Music of SoundCloud?</strong> Die diensten leveren geen downloadbaar bestand. Importeer een audiobestand dat je zelf bezit of mag gebruiken.</p>
+          </div>
+        </div>
+
+        <div class="panel equalizer-panel">
+          <div class="panel-heading eq-heading">
+            <div><span class="section-kicker">GELUIDSINSTELLINGEN</span><h2>Maak het van jou</h2></div>
+            <button class="reset-button" id="reset-eq">HERSTEL</button>
+          </div>
+
+          <div class="eq-intro"><span class="eq-badge"><svg viewBox="0 0 18 18"><path d="M3 5v8m4-11v14m4-9v5m4-8v11"/></svg></span><p>Je hoort je aanpassingen direct terug in het voorbeeld.</p></div>
+
+          <div class="slider-list">
+            <label class="slider-row" for="bass"><span class="slider-label"><strong>Bas</strong><span>WARMTE &amp; DIEPTE</span></span><span class="slider-control"><input id="bass" type="range" min="-12" max="12" value="0"><span class="slider-value" id="bass-value">0 dB</span></span></label>
+            <label class="slider-row" for="mids"><span class="slider-label"><strong>Midden</strong><span>STEM &amp; DETAIL</span></span><span class="slider-control"><input id="mids" type="range" min="-12" max="12" value="0"><span class="slider-value" id="mids-value">0 dB</span></span></label>
+            <label class="slider-row" for="treble"><span class="slider-label"><strong>Hoge tonen</strong><span>HELDERHEID</span></span><span class="slider-control"><input id="treble" type="range" min="-12" max="12" value="0"><span class="slider-value" id="treble-value">0 dB</span></span></label>
+            <label class="slider-row volume-row" for="volume"><span class="slider-label"><strong>Volume</strong><span>UITVOERNIVEAU</span></span><span class="slider-control"><input id="volume" type="range" min="-18" max="12" value="0"><span class="slider-value" id="volume-value">0 dB</span></span></label>
+          </div>
+
+          <div class="eq-curve" aria-hidden="true"><div class="curve-labels"><span>LAAG</span><span>MIDDEN</span><span>HOOG</span></div><svg viewBox="0 0 440 52" preserveAspectRatio="none"><path class="curve-grid" d="M0 26h440M0 6v40m110-40v40m110-40v40m110-40v40m110-40v40"/><path class="curve-path" id="curve-path" d="M0 26 C55 26 68 26 110 26 S175 26 220 26 S285 26 330 26 S390 26 440 26"/></svg></div>
+
+          <div class="convert-area">
+            <div class="quality-note"><span class="quality-check">✓</span><span>Verwerkt op je apparaat<br><strong>Je bestand blijft privé</strong></span></div>
+            <button class="convert-button" id="convert" disabled><span class="convert-label">MAAK M4A</span><span class="convert-arrow"><svg viewBox="0 0 20 20"><path d="M4 10h11m-4-4 4 4-4 4"/></svg></span></button>
+          </div>
+          <div class="progress-wrap hidden" id="progress-wrap"><div class="progress-top"><span id="progress-label">AUDIO WORDT OMGEZET</span><span id="progress-value">0%</span></div><div class="progress-track"><span id="progress-bar"></span></div></div>
+          <div class="result hidden" id="result"><span class="result-check">✓</span><div><strong>Je M4A is klaar</strong><span id="result-name">—</span></div><button id="show-output" class="result-link">TOON BESTAND</button></div>
+        </div>
+      </section>
+      <footer class="footer"><span>AudioWerk <span class="footer-dot">·</span> 1.0</span><span><span class="privacy-dot"></span> LOKALE VERWERKING</span><span>AUDIO CONVERTER <span class="footer-dot">/</span> M4A STUDIO</span></footer>
+      <div class="toast hidden" id="toast" role="status"></div>
+    </main>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
