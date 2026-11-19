@@ -1,4 +1,8 @@
-# AudioWerk
+# MP-Convert
+
+Quick converter for music and other files.
+
+## AudioWerk desktop app
 
 AudioWerk is a small Windows desktop application for converting local audio and video files to M4A. It includes a live bass, midrange, treble, and volume preview, then applies those settings during conversion.
 
