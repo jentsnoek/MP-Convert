@@ -102,22 +102,15 @@ function addTrack(track) {
   $('#drop-zone').classList.add('has-file');
   $('#convert').disabled = false;
   $('#play').disabled = false;
-  $('#player-status').textContent = 'VOORBEELD · LIVE GELUIDSAANPASSING';
+  $('#player-status').textContent = 'Voorbeeld · pas het geluid aan';
   $('#result').classList.add('hidden');
   $('#progress-wrap').classList.add('hidden');
-  updateWorkflow(2);
   audio.pause();
   audio.src = track.url;
   audio.load();
   $('#play .play-glyph').classList.remove('hidden');
   $('#play .pause-glyph').classList.add('hidden');
   applySettings();
-}
-
-function updateWorkflow(activeStep) {
-  document.querySelectorAll('.workflow-step').forEach((step, index) => {
-    step.classList.toggle('active', index + 1 <= activeStep);
-  });
 }
 
 function setSourceMode(mode) {
@@ -252,12 +245,11 @@ $('#remove-file').addEventListener('click', () => {
   $('#selected-file').classList.add('hidden');
   $('#convert').disabled = true;
   $('#play').disabled = true;
-  $('#player-status').textContent = 'VOEG EEN BESTAND TOE OM TE LUISTEREN';
+  $('#player-status').textContent = 'Voeg een bestand toe om te luisteren';
   $('#time-readout').textContent = '0:00 / 0:00';
   $('#seek').value = 0;
   $('#result').classList.add('hidden');
   $('#progress-wrap').classList.add('hidden');
-  updateWorkflow(1);
 });
 
 $('#play').addEventListener('click', async () => {
@@ -307,7 +299,7 @@ $('#convert').addEventListener('click', async () => {
   if (!selectedTrack) return;
   $('#convert').disabled = true;
   $('#progress-wrap').classList.remove('hidden');
-  $('#progress-label').textContent = 'AUDIO WORDT OMGEZET';
+  $('#progress-label').textContent = 'Audio wordt omgezet';
   $('#progress-value').textContent = '0%';
   $('#progress-bar').style.width = '0%';
   $('#result').classList.add('hidden');
@@ -326,7 +318,6 @@ $('#convert').addEventListener('click', async () => {
     $('#progress-label').textContent = 'KLAAR';
     $('#result-name').textContent = result.name;
     $('#result').classList.remove('hidden');
-    updateWorkflow(3);
   } catch (error) {
     $('#progress-wrap').classList.add('hidden');
     showToast(error.message || 'Er ging iets mis bij het omzetten.');

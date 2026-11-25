@@ -20,4 +20,4 @@ The bundled FFmpeg executable is GPLv3 software. Its license and the matching up
 
 ## Build
 
-Install Node.js on Windows, then run `npm ci` and `npm run build:windows` to create a portable x64 Windows executable in `dist/`. The GitHub Actions workflow builds the app, places the executable in a zip, and attaches both files to the `v1.0.4` release.
+Install Node.js on Windows, then run `npm ci` and `npm run build:windows` to create a portable x64 Windows executable in `dist/`. The GitHub Actions workflow builds the app, places the executable in a zip, and attaches both files to the `v1.0.5` release.
