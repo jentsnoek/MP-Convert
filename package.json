@@ -1,6 +1,6 @@
 {
   "name": "audiowerk",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Lokale audio- en videoconverter met equalizer",
   "main": "main.js",
   "author": "AudioWerk",
